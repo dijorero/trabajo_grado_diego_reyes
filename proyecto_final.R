@@ -17,22 +17,10 @@ library(aTSA)
 datos_IRA <- read_excel("F:\\TG\\datos IRA.xlsx")
 datos_IRA = as.matrix(datos_IRA)
 datos_IRA <- datos_IRA[, -1]
-
-#cantidad de datos del 2010 y el 2011 = 52*2
-#cantidad de datos del 2010,..., y 2019 = 52*10
-#cantidad de datos desde 2020 hasta el 2021 = 52*2
-#cantidad de datos desde 2020 hasta el 2022 = 52*3
-#cantidad de datos desde 2010 hasta el 2022 = 52*13 = 676 datos
-
-
-### GRAFICAR LA SERIE DE TIEMPO CON LOS DATOS IMPUTADOS EN EL 2020 Y 2021 USANDO GGPLOT
-
 semana = c(1:572)
 infectados = c(datos_IRA[1,], datos_IRA[2,], datos_IRA[3,], datos_IRA[4,], datos_IRA[5,], 
                datos_IRA[6,], datos_IRA[7,], datos_IRA[8,], datos_IRA[9,], datos_IRA[10,], 
-               datos_IRA[11,]) #YA NO MIRE MAS ESTA!
-
-length(infectados)
+               datos_IRA[11,])
 datos_IRA1df = data.frame(semana,infectados)
 ggplot(datos_IRA1df, aes(x=semana, y=infectados)) + geom_line()
 
@@ -49,28 +37,15 @@ año_epidemiologico = c(casos_IRA[1:(5*52)], NA,
                        rep(NA, (2*52 + 1)),
                        casos_IRA[(10*52 + 1):(10*52 + 30)],rep(NA, (24))) #676 datos con el arreglo final rep(NA, (20)
 
-#año_epidemiologico[627:656] desde la 627 empiezan los datos del 2022 hasta 656 terminan los 30 datos
-
 length(año_epidemiologico) #680
-#semanas_epidemicas1 = semanas_epidemicas$cstratum2
-#length(semanas_epidemicas1) #680
-
-#st = data.frame(semanas_epidemicas1[1:680],año_epidemiologico[1:680])
 st = data.frame(c(1:680),año_epidemiologico[1:680])
 colnames(st) = c("semana","infectados")
 ggplot(st, aes(x=semana , y=infectados)) + geom_line()
-
-
 serie_arima_ira = ts(año_epidemiologico[1:521])
-#install.packages("imputeTS")
-# library(imputeTS)
-serie_arima_ira = na_interpolation(serie_arima_ira, "spline")
-# library(forecast)
-
+interpolation(serie_arima_ira, "spline")
 
 #Prueba de Dickey-Fuller
 adf.test(serie_arima_ira)
-
 
 ndiffs(serie_arima_ira) # d=1
 acf(diff(serie_arima_ira)) # q = 5
@@ -80,9 +55,7 @@ ajuste_arima_ira = Arima(serie_arima_ira, order = c(5, 1, 5))
 prediccion = data.frame(forecast(ajuste_arima_ira, h = 52*3))[,1]
 length(prediccion)#156 
 length(st$semana)#680
-length(st$semana[520:680]) #161
-
-
+length(st$semana[520:680])
 
 df1 = data.frame(semana = st$semana[1:520], infectados = st$infectados[1:520], isin = "Observaciones")
 df2 = data.frame(semana = st$semana[520:624], infectados = prediccion[1:105] , isin = "Imputación 2020 y 2021")
@@ -93,8 +66,6 @@ df = rbind(df1, df2, df3)
 
 ggplot(df, aes(x = semana, y = infectados, color = isin)) + geom_line() + geom_vline(xintercept = (52*10), linetype = 3, color = 1) +   geom_vline(xintercept = (52*12),linetype = 3, color = 1)+   geom_vline(xintercept = (52*13),linetype = 3, color = 1) + scale_colour_manual(values=c(Observaciones='black', "Imputación 2020 y 2021"='#4F94CD', "Predicción 2022"='#EE0000')) 
 
-
-library(TSA)
 periodogram(serie_arima_ira, xlab = "Frecuencia", ylab = "Periodograma", 
             las =2, cex.axis = 0.8)
 abline(v = 0.02, lwd = 2, col = "#00FF00")
@@ -126,10 +97,6 @@ cuad_131 = (dif_131)^2
 sum_131 = sum(cuad_131)
 MSE_131=(1/30)*(sum_131)
 MSE_131
-
-
-##Grafico con la banda de confianza. Se ve mal
-#ggplot(df_131, aes(x = semana, y = infectados)) + geom_line() + geom_smooth(aes(x=semana, y=infectados, ymax=upper[105:161], ymin=lower[105:161]), colour='red', data=df3_131, stat='identity')
 
 ###-----------------------------------------------------------------------------------
 
@@ -209,5 +176,6 @@ sum_234 = sum(cuad_234)
 MSE_234=(1/30)*(sum_234)
 MSE_234
 ###---------------------------------------------------------
+#Modelo ARIMA con el mejor MSE
 MSE_min = min(MSE_131,MSE_222,MSE_231,MSE_234,MSE_424)
 MSE_min
